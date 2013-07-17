@@ -1,0 +1,25 @@
+{
+  "name": "retention-redis",
+  "types": ["module"],
+  "version": "1.4",
+  "homepage": "http://github.com/shinken-monitoring/mod-retention-redis",
+  "author": "Jean Gabès",
+  "description": "Module for loading/saving retention data from a redis cluster",
+  "contributors": [
+    {
+      "name": "Jean Gabès",
+      "email": "naparuba@gmail.com"
+    }
+  ],
+  "repository": "https://github.com/shinken-monitoring/mod-retention-redis",
+  "keywords": [
+    "module",
+    "scheduler",
+    "retention",
+    "redis"
+  ],
+  "dependencies": {
+    "shinken": ">=1.4"
+  },
+  "license": "AGPL"
+}
