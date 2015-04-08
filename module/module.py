@@ -52,17 +52,19 @@ def get_instance(plugin):
         raise Exception
     server = plugin.server
     port = plugin.port if hasattr(plugin, 'port') else 6379
+    password = plugin.password if hasattr(plugin, 'password') else None
     db = plugin.db if hasattr(plugin, 'db') else 0
 	
-    instance = Redis_retention_scheduler(plugin, server, port, db)
+    instance = Redis_retention_scheduler(plugin, server, port, password, db)
     return instance
 
 
 class Redis_retention_scheduler(BaseModule):
-    def __init__(self, modconf, server, port, db):
+    def __init__(self, modconf, server, port, password, db):
         BaseModule.__init__(self, modconf)
         self.server = server
         self.port = port
+        self.password = password
         self.db = db
 
     def init(self):
@@ -71,7 +73,7 @@ class Redis_retention_scheduler(BaseModule):
         """
         logger.debug("[RedisRetention] Initialization of the redis module")
         #self.return_queue = self.properties['from_queue']
-        self.mc = redis.Redis(host=self.server, port=self.port, db=self.db)
+        self.mc = redis.Redis(host=self.server, port=self.port, password=self.password, db=self.db)
 
     def hook_save_retention(self, daemon):
         """
