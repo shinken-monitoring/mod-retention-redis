@@ -71,7 +71,7 @@ class Redis_retention_scheduler(BaseModule):
         """
         Called by Scheduler to say 'let's prepare yourself guy'
         """
-        logger.debug("[RedisRetention] Initialization of the redis module")
+        logger.info("[RedisRetention] Initialization of the redis module")
         #self.return_queue = self.properties['from_queue']
         self.mc = redis.Redis(host=self.server, port=self.port, password=self.password, db=self.db)
 
@@ -107,7 +107,7 @@ class Redis_retention_scheduler(BaseModule):
     def hook_load_retention(self, daemon):
 
         # Now the new redis way :)
-        logger.debug("[RedisRetention] asking me to load the retention objects")
+        logger.info("[RedisRetention] asking me to load retention objects")
 
         # We got list of loaded data from retention server
         ret_hosts = {}
