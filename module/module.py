@@ -48,24 +48,27 @@ def get_instance(plugin):
     """
     logger.debug("Get a redis retention scheduler module for plugin %s" % plugin.get_name())
     if not redis:
-        logger.error('Missing the module python-redis. Please install it.')
+        logger.error('Missing the module redis. Please install it.')
         raise Exception
     server = plugin.server
     port = plugin.port if hasattr(plugin, 'port') else 6379
     password = plugin.password if hasattr(plugin, 'password') else None
     db = plugin.db if hasattr(plugin, 'db') else 0
+    expire_time = getattr(plugin, 'expire_time', 0)
 	
-    instance = Redis_retention_scheduler(plugin, server, port, password, db)
+    instance = Redis_retention_scheduler(plugin, server, port, password, db,
+                                         expire_time)
     return instance
 
 
 class Redis_retention_scheduler(BaseModule):
-    def __init__(self, modconf, server, port, password, db):
+    def __init__(self, modconf, server, port, password, db, expire_time):
         BaseModule.__init__(self, modconf)
         self.server = server
         self.port = port
         self.password = password
         self.db = db
+        self.expire_time = expire_time
 
     def init(self):
         """
@@ -74,6 +77,14 @@ class Redis_retention_scheduler(BaseModule):
         logger.info("[RedisRetention] Initialization of the redis module")
         #self.return_queue = self.properties['from_queue']
         self.mc = redis.Redis(host=self.server, port=self.port, password=self.password, db=self.db)
+
+    def _get_host_key(self, h_name):
+        host_key = 'HOST-%s' % (h_name)
+        return host_key
+
+    def _get_service_key(self, h_name, s_name):
+        service_key = 'SERVICE-%s,%s' % (h_name, s_name)
+        return service_key
 
     def hook_save_retention(self, daemon):
         """
@@ -89,18 +100,21 @@ class Redis_retention_scheduler(BaseModule):
         # Now the flat file method
         for h_name in hosts:
             h = hosts[h_name]
-            key = "HOST-%s" % h_name
+            key = self._get_host_key(h_name)
             val = cPickle.dumps(h)
-            self.mc.set(key, val)
+            if self.expire_time:
+                self.rc.set(key, val, ex=self.expire_time)
+            else:
+                self.rc.set(key, val)
 
         for (h_name, s_desc) in services:
             s = services[(h_name, s_desc)]
-            key = "SERVICE-%s,%s" % (h_name, s_desc)
-            # space are not allowed in memcache key.. so change it by SPACE token
-            key = key.replace(' ', 'SPACE')
-            #print "Using key", key
+            key = self._get_service_key(h_name, s_desc)
             val = cPickle.dumps(s)
-            self.mc.set(key, val)
+            if self.expire_time:
+                self.rc.set(key, val, ex=self.expire_time)
+            else:
+                self.rc.set(key, val)
         logger.info("Retention information updated in Redis")
 
     # Should return if it succeed in the retention load or not
@@ -115,22 +129,17 @@ class Redis_retention_scheduler(BaseModule):
 
         # We must load the data and format as the scheduler want :)
         for h in daemon.hosts:
-            key = "HOST-%s" % h.host_name
-            val = self.mc.get(key)
+            key = self._get_host_key(h.host_name)
+            val = self.rc.get(key)
             if val is not None:
-                # redis get unicode, but we send string, so we are ok
-                #val = str(unicode(val))
                 val = cPickle.loads(val)
                 ret_hosts[h.host_name] = val
 
         for s in daemon.services:
-            key = "SERVICE-%s,%s" % (s.host.host_name, s.service_description)
-            # space are not allowed in memcache key.. so change it by SPACE token
-            key = key.replace(' ', 'SPACE')
-            #print "Using key", key
-            val = self.mc.get(key)
+            key = self._get_service_key(s.host.host_name,
+                                        s.service_description)
+            val = self.rc.get(key)
             if val is not None:
-                #val = str(unicode(val))
                 val = cPickle.loads(val)
                 ret_services[(s.host.host_name, s.service_description)] = val
 
