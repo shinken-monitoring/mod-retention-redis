@@ -50,13 +50,14 @@ def get_instance(plugin):
     if not redis:
         logger.error('Missing the module redis. Please install it.')
         raise Exception
-    server = plugin.server
-    port = plugin.port if hasattr(plugin, 'port') else 6379
-    password = plugin.password if hasattr(plugin, 'password') else None
-    db = plugin.db if hasattr(plugin, 'db') else 0
-    expire_time = getattr(plugin, 'expire_time', 0)
-	
-    instance = Redis_retention_scheduler(plugin, server, port, password, db,
+
+    server = getattr(plugin, 'server', '127.0.0.1')
+    port = int(getattr(plugin, 'port', 6379))
+    password = getattr(plugin, 'password', None)
+    db = int(getattr(plugin, 'db', 0))
+    expire_time = int(getattr(plugin, 'expire_time', 0))
+
+    instance = Redis_retention_scheduler(plugin, server, password, port,
                                          expire_time)
     return instance
 
