@@ -76,7 +76,6 @@ class Redis_retention_scheduler(BaseModule):
         Called by Scheduler to say 'let's prepare yourself guy'
         """
         logger.info("[RedisRetention] Initialization of the redis module")
-        #self.return_queue = self.properties['from_queue']
         self.mc = redis.Redis(host=self.server, port=self.port, password=self.password, db=self.db)
 
     def _get_host_key(self, h_name):
